@@ -35,139 +35,188 @@ const Step2LinkedInPDF: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysis, setAnalysis] = useState<LinkedInAnalysis | null>(null);
 
-  const analyzeLinkedInContent = async (text: string): Promise<LinkedInAnalysis> => {
-    const prompt = `You are an expert at parsing LinkedIn profile data. Analyze this LinkedIn profile text and extract structured information.
-
-IMPORTANT: This is a LinkedIn PDF export format. Look for:
-- Name (usually at the top)
-- Contact information (email, phone, location)
-- Professional headline/title
-- About/Summary section
-- Experience section with job titles, companies, dates
-- Education section with degrees, schools, years
-- Skills section
-- Certifications
-
-LinkedIn Profile Text:
-${text}
-
-Extract and return ONLY a JSON object with this exact structure:
-{
-  "name": "Full Name",
-  "headline": "Professional headline/title",
-  "location": "City, Country",
-  "summary": "Professional summary/about section",
-  "experience": [
-    {
-      "title": "Job Title",
-      "company": "Company Name",
-      "duration": "Start - End dates",
-      "description": "Brief job description"
-    }
-  ],
-  "education": [
-    {
-      "school": "University/School Name",
-      "degree": "Degree Type",
-      "field": "Field of Study",
-      "year": "Graduation Year"
-    }
-  ],
-  "skills": ["skill1", "skill2", "skill3"],
-  "certifications": ["cert1", "cert2"]
-}
-
-Return only the JSON object, no other text.`;
-
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Resume Generator'
-        },
-        body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 2000,
-          temperature: 0.1
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+  const parseLinkedInPDF = (text: string): LinkedInAnalysis => {
+    console.log('Raw LinkedIn PDF text:', text);
+    
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    // Extract name (usually the first meaningful line or after "Contact")
+    let name = 'Name not found';
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+      const line = lines[i];
+      // Skip common headers and look for actual name
+      if (line && 
+          !line.includes('@') && 
+          !line.includes('http') && 
+          !line.includes('Contact') &&
+          !line.includes('Top Skills') &&
+          !line.includes('LinkedIn') &&
+          line.length > 2 &&
+          line.length < 50 &&
+          /^[A-Z][a-zA-Z\s]+$/.test(line)) {
+        name = line;
+        break;
       }
-
-      const data = await response.json();
-      const content = data.choices[0].message.content;
-      
-      // Try to parse JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+    }
+    
+    // Extract email
+    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    const email = emailMatch ? emailMatch[0] : '';
+    
+    // Extract phone
+    const phoneMatch = text.match(/[\+]?[\d\s\-\(\)]{10,}/);
+    const phone = phoneMatch ? phoneMatch[0] : '';
+    
+    // Extract location - look for patterns after name
+    let location = 'Location not specified';
+    const locationPatterns = [
+      /([A-Z][a-z]+,\s*[A-Z][a-z]+)/,
+      /([A-Z][a-z]+\s*,\s*[A-Z][A-Z])/,
+      /(Mumbai|Delhi|Bangalore|Chennai|Hyderabad|Pune|Kolkata|Ahmedabad|Thane|Maharashtra|Gujarat|Karnataka|Tamil Nadu|Telangana|West Bengal)/i
+    ];
+    
+    for (const pattern of locationPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        location = match[1] || match[0];
+        break;
       }
-      
-      throw new Error('Could not parse AI response');
-    } catch (error) {
-      console.error('LinkedIn analysis error:', error);
-      
-      // Enhanced fallback parsing for LinkedIn PDF format
-      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      
-      // Try to extract name (usually first meaningful line)
-      let name = 'Name not found';
-      for (const line of lines.slice(0, 10)) {
-        if (line.match(/^[A-Z][a-z]+ [A-Z][a-z]+/) && !line.includes('@') && !line.includes('http')) {
-          name = line;
+    }
+    
+    // Extract headline/title - usually after name
+    let headline = 'Professional';
+    const nameIndex = lines.findIndex(line => line.includes(name));
+    if (nameIndex >= 0 && nameIndex < lines.length - 1) {
+      for (let i = nameIndex + 1; i < Math.min(nameIndex + 5, lines.length); i++) {
+        const line = lines[i];
+        if (line && 
+            !line.includes('@') && 
+            !line.includes('http') && 
+            !line.includes('+91') &&
+            !line.includes('Contact') &&
+            line.length > 5 &&
+            line.length < 100) {
+          headline = line;
           break;
         }
       }
-      
-      // Extract email
-      const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
-      const email = emailMatch ? emailMatch[0] : '';
-      
-      // Extract phone
-      const phoneMatch = text.match(/[\+]?[\d\s\-\(\)]{10,}/);
-      const phone = phoneMatch ? phoneMatch[0] : '';
-      
-      // Extract location (look for patterns like "City, Country")
-      const locationMatch = text.match(/([A-Z][a-z]+,\s*[A-Z][a-z]+)/);
-      const location = locationMatch ? locationMatch[1] : 'Location not specified';
-      
-      // Try to extract skills (look for common tech skills)
-      const commonSkills = ['JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'HTML', 'CSS', 'Git', 'AWS', 'Docker', 'Kubernetes'];
-      const foundSkills = commonSkills.filter(skill => 
-        text.toLowerCase().includes(skill.toLowerCase())
-      );
-      
-      return {
-        name,
-        headline: 'Professional extracted from LinkedIn',
-        location,
-        summary: `Professional with experience in ${foundSkills.slice(0, 3).join(', ') || 'various technologies'}. ${text.substring(0, 150)}...`,
-        experience: [
-          {
-            title: 'Position extracted from LinkedIn',
-            company: 'Company from LinkedIn',
-            duration: 'Duration from LinkedIn',
-            description: 'Experience details extracted from LinkedIn profile'
+    }
+    
+    // Extract experience section
+    const experience: Array<{title: string, company: string, duration: string, description: string}> = [];
+    const experienceKeywords = ['Experience', 'Work', 'Employment', 'Professional Experience'];
+    let experienceStartIndex = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (experienceKeywords.some(keyword => lines[i].toLowerCase().includes(keyword.toLowerCase()))) {
+        experienceStartIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (experienceStartIndex > 0) {
+      for (let i = experienceStartIndex; i < Math.min(experienceStartIndex + 20, lines.length); i++) {
+        const line = lines[i];
+        if (line && line.length > 10 && !line.includes('@') && !line.includes('http')) {
+          // Try to parse job title and company
+          const parts = line.split(' at ');
+          if (parts.length === 2) {
+            experience.push({
+              title: parts[0].trim(),
+              company: parts[1].trim(),
+              duration: 'Duration from LinkedIn',
+              description: 'Experience details from LinkedIn profile'
+            });
+          } else if (line.includes('·') || line.includes('|')) {
+            const separator = line.includes('·') ? '·' : '|';
+            const parts = line.split(separator);
+            if (parts.length >= 2) {
+              experience.push({
+                title: parts[0].trim(),
+                company: parts[1].trim(),
+                duration: parts[2] ? parts[2].trim() : 'Duration from LinkedIn',
+                description: 'Experience details from LinkedIn profile'
+              });
+            }
           }
-        ],
-        education: [
-          {
-            school: 'Educational institution from LinkedIn',
+        }
+        
+        // Stop if we hit another section
+        if (line.toLowerCase().includes('education') || 
+            line.toLowerCase().includes('skills') ||
+            line.toLowerCase().includes('projects')) {
+          break;
+        }
+      }
+    }
+    
+    // Extract education
+    const education: Array<{school: string, degree: string, field: string, year: string}> = [];
+    const educationKeywords = ['Education', 'Academic', 'University', 'College', 'School'];
+    let educationStartIndex = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (educationKeywords.some(keyword => lines[i].toLowerCase().includes(keyword.toLowerCase()))) {
+        educationStartIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (educationStartIndex > 0) {
+      for (let i = educationStartIndex; i < Math.min(educationStartIndex + 10, lines.length); i++) {
+        const line = lines[i];
+        if (line && line.length > 5) {
+          education.push({
+            school: line,
             degree: 'Degree from LinkedIn',
             field: 'Field of study',
             year: 'Year from LinkedIn'
-          }
-        ],
-        skills: foundSkills.length > 0 ? foundSkills : ['Professional skills from LinkedIn'],
-        certifications: []
-      };
+          });
+          break; // Usually just one education entry in LinkedIn PDF
+        }
+      }
     }
+    
+    // Extract skills - look for technical terms
+    const commonSkills = [
+      'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'HTML', 'CSS', 'Git',
+      'AWS', 'Docker', 'Kubernetes', 'TypeScript', 'Angular', 'Vue', 'MongoDB', 'PostgreSQL',
+      'Express', 'Django', 'Flask', 'Spring', 'Laravel', 'PHP', 'Ruby', 'Go', 'Rust',
+      'Machine Learning', 'Data Science', 'AI', 'DevOps', 'CI/CD', 'Agile', 'Scrum'
+    ];
+    
+    const foundSkills = commonSkills.filter(skill => 
+      text.toLowerCase().includes(skill.toLowerCase())
+    );
+    
+    // If no technical skills found, extract from skills section
+    const skillsSection = text.match(/Skills[\s\S]*?(?=\n[A-Z]|\n\n|$)/i);
+    if (skillsSection && foundSkills.length === 0) {
+      const skillsText = skillsSection[0];
+      const skillLines = skillsText.split('\n').slice(1); // Skip "Skills" header
+      foundSkills.push(...skillLines.filter(line => line.trim().length > 0).slice(0, 10));
+    }
+    
+    return {
+      name,
+      headline,
+      location,
+      summary: `Professional with experience in ${foundSkills.slice(0, 3).join(', ') || 'various technologies'}. ${text.substring(0, 150)}...`,
+      experience: experience.length > 0 ? experience : [{
+        title: 'Position extracted from LinkedIn',
+        company: 'Company from LinkedIn',
+        duration: 'Duration from LinkedIn',
+        description: 'Experience details extracted from LinkedIn profile'
+      }],
+      education: education.length > 0 ? education : [{
+        school: 'Educational institution from LinkedIn',
+        degree: 'Degree from LinkedIn',
+        field: 'Field of study',
+        year: 'Year from LinkedIn'
+      }],
+      skills: foundSkills.length > 0 ? foundSkills : ['Professional skills from LinkedIn'],
+      certifications: []
+    };
   };
 
   const handleFileUpload = async (file: File) => {
@@ -176,7 +225,10 @@ Return only the JSON object, no other text.`;
     
     try {
       const text = await apiService.parseLinkedinPdf(file);
-      const analysisResult = await analyzeLinkedInContent(text);
+      console.log('Parsed LinkedIn text:', text);
+      
+      const analysisResult = parseLinkedInPDF(text);
+      console.log('Analysis result:', analysisResult);
       
       setAnalysis(analysisResult);
       updateResumeData({

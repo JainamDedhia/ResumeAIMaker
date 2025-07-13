@@ -70,6 +70,7 @@ export interface ResumeData {
     sections: string[];
   };
   jobDescription: string;
+  selectedTemplate?: any;
   jobAnalysis?: {
     keyRequirements: string[];
     skillsMatch: number;

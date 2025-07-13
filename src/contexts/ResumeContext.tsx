@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { ResumeData, Step } from '../types';
+import { ResumeTemplate } from '../components/TemplateSelector';
 
 interface ResumeContextType {
   resumeData: ResumeData;
@@ -24,6 +25,7 @@ const initialResumeData: ResumeData = {
   linkedinPosts: [],
   existingResume: null,
   jobDescription: '',
+  selectedTemplate: null,
   personalInfo: {
     fullName: '',
     email: '',
@@ -39,7 +41,8 @@ const initialSteps: Step[] = [
   { id: 3, title: 'LinkedIn Posts', description: 'Add recent posts', completed: false, active: false },
   { id: 4, title: 'Existing Resume', description: 'Upload current resume', completed: false, active: false },
   { id: 5, title: 'Job Description', description: 'Target job details', completed: false, active: false },
-  { id: 6, title: 'Generate Resume', description: 'AI-powered generation', completed: false, active: false }
+  { id: 6, title: 'Template', description: 'Choose template', completed: false, active: false },
+  { id: 7, title: 'Generate Resume', description: 'AI-powered generation', completed: false, active: false }
 ];
 
 type ResumeAction = 
@@ -57,7 +60,7 @@ const resumeReducer = (state: any, action: ResumeAction) => {
         resumeData: { ...state.resumeData, ...action.payload }
       };
     case 'NEXT_STEP':
-      if (state.currentStep < 6) {
+      if (state.currentStep < 7) {
         const newSteps = state.steps.map((step: Step) => ({
           ...step,
           active: step.id === state.currentStep + 1

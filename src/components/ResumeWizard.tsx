@@ -8,7 +8,8 @@ import Step2LinkedInPDF from './steps/Step2LinkedInPDF';
 import Step3LinkedInPosts from './steps/Step3LinkedInPosts';
 import Step4ExistingResume from './steps/Step4ExistingResume';
 import Step5JobDescription from './steps/Step5JobDescription';
-import Step6GenerateResume from './steps/Step6GenerateResume';
+import Step6_5TemplateSelection from './steps/Step6_5TemplateSelection';
+import Step7FinalGeneration from './steps/Step7FinalGeneration';
 
 const ResumeWizard: React.FC = () => {
   const { currentStep } = useResume();
@@ -28,7 +29,9 @@ const ResumeWizard: React.FC = () => {
       case 5:
         return <Step5JobDescription />;
       case 6:
-        return <Step6GenerateResume />;
+        return <Step6_5TemplateSelection />;
+      case 7:
+        return <Step7FinalGeneration />;
       default:
         return <Step0ApiKey />;
     }
