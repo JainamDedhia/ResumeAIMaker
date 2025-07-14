@@ -123,18 +123,16 @@ ${getTemplateInstructions(resumeData.selectedTemplate?.id || 'professional-class
 Generate a complete, professional resume now:`;
 
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
+            'Authorization': `Bearer ${resumeData.groqApiKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'Resume Generator'
           },
           body: JSON.stringify({
-            model: 'anthropic/claude-3.5-sonnet',
+            model: 'llama3-70b-8192',
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 1000,
+            max_tokens: 4000,
             temperature: 0.3
           })
         });

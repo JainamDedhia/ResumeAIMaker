@@ -16,7 +16,7 @@ const Step0ApiKey: React.FC = () => {
 
   const { register, handleSubmit, formState: { errors } } = useForm<ApiKeyFormData>({
     defaultValues: {
-      apiKey: resumeData.openrouterApiKey || ''
+      apiKey: resumeData.groqApiKey || ''
     }
   });
 
@@ -24,7 +24,7 @@ const Step0ApiKey: React.FC = () => {
     setIsValidating(true);
     // Simple validation - just check if it's not empty and looks like an API key
     if (data.apiKey.trim().length > 10) {
-      updateResumeData({ openrouterApiKey: data.apiKey.trim() });
+      updateResumeData({ groqApiKey: data.apiKey.trim() });
       setTimeout(() => {
         setIsValidating(false);
         nextStep();
@@ -37,7 +37,7 @@ const Step0ApiKey: React.FC = () => {
   return (
     <StepContainer
       title="Setup AI Analysis"
-      description="Provide your OpenRouter API key to enable AI-powered analysis and resume generation"
+      description="Provide your Groq API key to enable AI-powered analysis and resume generation"
       onNext={() => {}}
       canGoNext={false}
       canGoPrev={false}
@@ -50,7 +50,7 @@ const Step0ApiKey: React.FC = () => {
               AI-Powered Resume Generation
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              We'll use AI to analyze your LinkedIn profile, existing resume, and job descriptions 
+              We'll use Groq's fast AI to analyze your LinkedIn profile, existing resume, and job descriptions 
               to create the perfect tailored resume.
             </p>
           </div>
@@ -64,6 +64,7 @@ const Step0ApiKey: React.FC = () => {
               <li>• Smart job description analysis and keyword extraction</li>
               <li>• ATS-optimized resume generation tailored to specific roles</li>
               <li>• Professional content enhancement and formatting</li>
+              <li>• FREE tier with 14,400 requests per day</li>
             </ul>
           </div>
         </GlassCard>
@@ -72,7 +73,7 @@ const Step0ApiKey: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Key className="w-4 h-4 inline mr-1" />
-              OpenRouter API Key *
+              Groq API Key *
             </label>
             <input
               type="password"
@@ -84,7 +85,7 @@ const Step0ApiKey: React.FC = () => {
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                        focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent
                        placeholder-gray-400 dark:placeholder-gray-500"
-              placeholder="sk-or-v1-..."
+              placeholder="gsk_..."
             />
             {errors.apiKey && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -119,17 +120,29 @@ const Step0ApiKey: React.FC = () => {
 
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Don't have an OpenRouter API key?
+            Don't have a Groq API key?
           </p>
           <a
-            href="https://openrouter.ai/keys"
+            href="https://console.groq.com/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-cyan-600 dark:text-cyan-400 hover:underline"
           >
-            Get your free API key here
+            Get your free API key here (14,400 requests/day)
             <ExternalLink className="w-4 h-4 ml-1" />
           </a>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+            Why Groq?
+          </h4>
+          <ul className="text-sm text-green-800 dark:text-green-200 space-y-1">
+            <li>• Completely FREE tier with generous limits</li>
+            <li>• Lightning fast inference (up to 500 tokens/second)</li>
+            <li>• High-quality AI models (Llama 3, Mixtral)</li>
+            <li>• No credit card required for free tier</li>
+          </ul>
         </div>
       </div>
     </StepContainer>

@@ -76,16 +76,14 @@ ${text}
 Return only the JSON object, no other text.`;
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
+          'Authorization': `Bearer ${resumeData.groqApiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Resume Generator'
         },
         body: JSON.stringify({
-          model: 'mistralai/mixtral-8x7b-instruct',
+          model: 'llama3-8b-8192',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2000,
           temperature: 0.3

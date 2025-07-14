@@ -14,7 +14,7 @@ interface ResumeContextType {
 }
 
 const initialResumeData: ResumeData = {
-  openrouterApiKey: '',
+  groqApiKey: '',
   githubProfile: {
     username: '',
     bio: '',

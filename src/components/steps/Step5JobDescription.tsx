@@ -76,16 +76,14 @@ Return only the JSON object, no other text.`;
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       }
 
-      const data = await response.json();
+            'Authorization': `Bearer ${resumeData.groqApiKey}`,
       const content = data.choices[0].message.content;
-      
-      // Try to parse JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const analysisResult = JSON.parse(jsonMatch[0]);
+            model: 'llama3-70b-8192',
         setAnalysis(analysisResult);
         updateResumeData({ 
           jobDescription,

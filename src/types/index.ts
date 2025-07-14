@@ -7,7 +7,7 @@ export interface Step {
 }
 
 export interface ResumeData {
-  openrouterApiKey?: string;
+  groqApiKey?: string;
   githubProfile: {
     username: string;
     bio: string;

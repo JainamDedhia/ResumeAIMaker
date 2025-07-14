@@ -192,30 +192,28 @@ async function extractTextFromDocx(buffer) {
 
 async function generateResumeWithLLM(prompt, apiKey) {
   try {
-    const url = "https://openrouter.ai/api/v1/chat/completions";
+    const url = "https://api.groq.com/openai/v1/chat/completions";
     const headers = {
       "Authorization": `Bearer ${apiKey}`,
-      "HTTP-Referer": "http://localhost:3000",
-      "X-Title": "Resume Generator",
       "Content-Type": "application/json"
     };
     
     const data = {
-      model: "mistralai/mixtral-8x7b-instruct",
+      model: "llama3-70b-8192",
       messages: [
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 6000,
+      max_tokens: 4000,
       temperature: 0.7
     };
     
     const response = await axios.post(url, data, { headers });
     
     if (response.status !== 200) {
-      throw new Error(`OpenRouter API error: ${response.data}`);
+      throw new Error(`Groq API error: ${response.data}`);
     }
     
     return response.data.choices[0].message.content;
