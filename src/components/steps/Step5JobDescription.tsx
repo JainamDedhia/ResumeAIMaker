@@ -30,45 +30,42 @@ const Step5JobDescription: React.FC = () => {
     setIsAnalyzing(true);
     
     try {
-      const prompt = `You are an expert job market analyst and ATS specialist. Analyze this job description and extract comprehensive insights.
+      const prompt = `Analyze this job description and extract key information. Return ONLY a JSON object with this exact structure:
 
-Job Description:
-${jobDescription}
-
-Extract and return ONLY a JSON object with this exact structure:
 {
   "keyRequirements": ["requirement1", "requirement2", "requirement3"],
   "skillsMatch": 85,
   "recommendedKeywords": ["keyword1", "keyword2", "keyword3"],
-  "jobLevel": "Senior/Mid/Junior/Executive",
-  "industry": "Technology/Finance/Healthcare/etc",
+  "jobLevel": "Junior/Mid/Senior/Executive",
+  "industry": "Design/Technology/Finance/etc",
   "companySize": "Startup/Mid-size/Enterprise",
-  "salaryRange": "Estimated range or Not specified",
-  "requiredExperience": "X years",
+  "salaryRange": "₹2,00,000 - 2,40,000",
+  "requiredExperience": "1 year",
   "preferredSkills": ["skill1", "skill2", "skill3"],
   "responsibilities": ["responsibility1", "responsibility2", "responsibility3"]
 }
 
-Focus on:
-1. Extract the most important technical and soft skills mentioned
-2. Identify key requirements that candidates must have
-3. Determine the seniority level based on responsibilities and requirements
-4. Extract industry-specific keywords that should be in a resume
-5. List main job responsibilities
-6. Estimate experience level required
+Job Description:
+${jobDescription}
+
+Focus on extracting:
+1. The actual job title and level (Junior/Senior/etc)
+2. Required skills and software mentioned
+3. Years of experience needed
+4. Key responsibilities listed
+5. Industry type based on job content
+6. Salary if mentioned
 
 Return only the JSON object, no other text.`;
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Resume Generator'
+          'Authorization': `Bearer ${resumeData.groqApiKey}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
+          model: 'llama3-70b-8192',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2000,
           temperature: 0.1
@@ -76,24 +73,18 @@ Return only the JSON object, no other text.`;
       });
 
       if (!response.ok) {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resumeData.groqApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'llama3-70b-8192',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 2000,
-            temperature: 0.1
-          })
-        });
+        throw new Error(`API request failed: ${response.status}`);
       }
 
       const data = await response.json();
+      
+      if (!data?.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from AI');
+      }
+
       const content = data.choices[0].message.content;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
+      
       if (jsonMatch) {
         const analysisResult = JSON.parse(jsonMatch[0]);
         setAnalysis(analysisResult);
@@ -108,54 +99,77 @@ Return only the JSON object, no other text.`;
     } catch (error) {
       console.error('Analysis error:', error);
       
-      // Enhanced fallback analysis
+      // Enhanced fallback analysis based on actual job description
       const text = jobDescription.toLowerCase();
       
-      // Extract common tech skills
-      const techSkills = ['javascript', 'python', 'react', 'node.js', 'java', 'c++', 'sql', 'aws', 'docker', 'kubernetes', 'git', 'html', 'css', 'typescript', 'angular', 'vue', 'mongodb', 'postgresql'];
-      const foundSkills = techSkills.filter(skill => text.includes(skill));
-      
-      // Determine job level
+      // Extract job level from title
       let jobLevel = 'Mid-level';
-      if (text.includes('senior') || text.includes('lead') || text.includes('principal')) {
-        jobLevel = 'Senior';
-      } else if (text.includes('junior') || text.includes('entry') || text.includes('associate')) {
+      if (text.includes('junior') || text.includes('entry') || text.includes('associate') || text.includes('1 year')) {
         jobLevel = 'Junior';
+      } else if (text.includes('senior') || text.includes('lead') || text.includes('principal')) {
+        jobLevel = 'Senior';
       } else if (text.includes('director') || text.includes('manager') || text.includes('head of')) {
         jobLevel = 'Executive';
       }
       
-      // Determine industry
+      // Extract industry from job content
       let industry = 'Technology';
-      if (text.includes('finance') || text.includes('bank')) industry = 'Finance';
-      else if (text.includes('health') || text.includes('medical')) industry = 'Healthcare';
-      else if (text.includes('education') || text.includes('school')) industry = 'Education';
+      if (text.includes('motion') || text.includes('graphics') || text.includes('design') || text.includes('adobe')) {
+        industry = 'Design & Creative';
+      } else if (text.includes('finance') || text.includes('bank')) {
+        industry = 'Finance';
+      } else if (text.includes('health') || text.includes('medical')) {
+        industry = 'Healthcare';
+      }
+      
+      // Extract skills mentioned in job description
+      const designSkills = ['adobe after effects', 'adobe animate', 'adobe illustrator', 'adobe indesign', 'adobe photoshop', 'adobe premiere pro', 'animation', 'video editing', 'motion graphics'];
+      const foundSkills = designSkills.filter(skill => text.includes(skill.toLowerCase()));
       
       // Extract experience requirements
-      const expMatch = jobDescription.match(/(\d+)[\+\-\s]*years?/i);
-      const requiredExperience = expMatch ? `${expMatch[1]}+ years` : '2-5 years';
+      const expMatch = jobDescription.match(/(\d+)\s*year/i);
+      const requiredExperience = expMatch ? `${expMatch[1]} year${expMatch[1] !== '1' ? 's' : ''}` : '1 year';
+      
+      // Extract salary
+      const salaryMatch = jobDescription.match(/₹\s*([\d,]+)\s*-\s*₹?\s*([\d,]+)/);
+      const salaryRange = salaryMatch ? `₹${salaryMatch[1]} - ₹${salaryMatch[2]}` : 'Not specified';
+      
+      // Extract key responsibilities
+      const responsibilities = [];
+      if (text.includes('design') && text.includes('animate')) {
+        responsibilities.push('Design and animate high-quality motion graphics');
+      }
+      if (text.includes('collaborate')) {
+        responsibilities.push('Collaborate with creative and marketing teams');
+      }
+      if (text.includes('edit') && text.includes('video')) {
+        responsibilities.push('Edit and composite video footage');
+      }
+      if (text.includes('static') && text.includes('graphic')) {
+        responsibilities.push('Create static graphic designs for various platforms');
+      }
       
       const fallbackAnalysis: JobAnalysis = {
         keyRequirements: [
-          'Strong technical skills',
-          'Experience with relevant technologies',
-          'Good communication skills',
-          'Team collaboration',
-          'Problem-solving abilities'
+          'Strong portfolio showcasing motion graphics work',
+          'Proficiency in Adobe Creative Suite',
+          'Creative storytelling abilities',
+          'Attention to detail in visual design',
+          'Good communication and teamwork skills'
         ],
         skillsMatch: 75,
-        recommendedKeywords: foundSkills.length > 0 ? foundSkills.slice(0, 8) : ['JavaScript', 'React', 'Node.js', 'API', 'Database'],
+        recommendedKeywords: foundSkills.length > 0 ? foundSkills : ['Adobe After Effects', 'Adobe Premiere Pro', 'Motion Graphics', 'Animation', 'Video Editing', 'Adobe Photoshop', 'Adobe Illustrator'],
         jobLevel,
         industry,
         companySize: 'Mid-size',
-        salaryRange: 'Not specified',
+        salaryRange,
         requiredExperience,
-        preferredSkills: ['Problem solving', 'Agile methodology', 'Version control', 'Testing', 'Documentation'],
-        responsibilities: [
-          'Develop and maintain software solutions',
-          'Collaborate with cross-functional teams',
-          'Participate in code reviews',
-          'Contribute to technical documentation'
+        preferredSkills: ['Leadership', 'Team Management', 'Creative Direction', 'Brand Identity', 'Visual Storytelling'],
+        responsibilities: responsibilities.length > 0 ? responsibilities : [
+          'Design and animate motion graphics for digital campaigns',
+          'Collaborate with creative teams on visual concepts',
+          'Edit video content and add visual effects',
+          'Create graphics optimized for different platforms'
         ]
       };
       

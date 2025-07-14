@@ -40,9 +40,11 @@ const Step2LinkedInPDF: React.FC = () => {
     
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     
-    // Extract name (usually the first meaningful line or after "Contact")
+    // Extract name - LinkedIn PDFs have a consistent format
     let name = 'Name not found';
-    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    
+    // Look for the name in the first few lines, it's usually the first substantial text
+    for (let i = 0; i < Math.min(lines.length, 5); i++) {
       const line = lines[i];
       // Skip common headers and look for actual name
       if (line && 
@@ -51,6 +53,7 @@ const Step2LinkedInPDF: React.FC = () => {
           !line.includes('Contact') &&
           !line.includes('Top Skills') &&
           !line.includes('LinkedIn') &&
+          !line.includes('Resume') &&
           line.length > 2 &&
           line.length < 50 &&
           /^[A-Z][a-zA-Z\s]+$/.test(line)) {
@@ -59,16 +62,18 @@ const Step2LinkedInPDF: React.FC = () => {
       }
     }
     
-    // Extract email
+    // Extract email - LinkedIn format is consistent
     const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
     const email = emailMatch ? emailMatch[0] : '';
     
-    // Extract phone
+    // Extract phone - LinkedIn format
     const phoneMatch = text.match(/[\+]?[\d\s\-\(\)]{10,}/);
     const phone = phoneMatch ? phoneMatch[0] : '';
     
-    // Extract location - look for patterns after name
+    // Extract location - LinkedIn has specific location patterns
     let location = 'Location not specified';
+    
+    // LinkedIn location patterns
     const locationPatterns = [
       /([A-Z][a-z]+,\s*[A-Z][a-z]+)/,
       /([A-Z][a-z]+\s*,\s*[A-Z][A-Z])/,
@@ -83,17 +88,18 @@ const Step2LinkedInPDF: React.FC = () => {
       }
     }
     
-    // Extract headline/title - usually after name
+    // Extract headline - usually after name in LinkedIn PDFs
     let headline = 'Professional';
-    const nameIndex = lines.findIndex(line => line.includes(name));
+    const nameIndex = lines.findIndex(line => line.includes(name.split(' ')[0]));
     if (nameIndex >= 0 && nameIndex < lines.length - 1) {
       for (let i = nameIndex + 1; i < Math.min(nameIndex + 5, lines.length); i++) {
         const line = lines[i];
         if (line && 
             !line.includes('@') && 
             !line.includes('http') && 
-            !line.includes('+91') &&
+            !line.includes('+') &&
             !line.includes('Contact') &&
+            !line.includes('linkedin.com') &&
             line.length > 5 &&
             line.length < 100) {
           headline = line;
@@ -102,119 +108,175 @@ const Step2LinkedInPDF: React.FC = () => {
       }
     }
     
-    // Extract experience section
+    // Extract experience - LinkedIn has "Experience" section
     const experience: Array<{title: string, company: string, duration: string, description: string}> = [];
-    const experienceKeywords = ['Experience', 'Work', 'Employment', 'Professional Experience'];
-    let experienceStartIndex = -1;
     
+    // Find Experience section
+    let experienceStartIndex = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (experienceKeywords.some(keyword => lines[i].toLowerCase().includes(keyword.toLowerCase()))) {
+      if (lines[i].toLowerCase().includes('experience') && lines[i].length < 20) {
         experienceStartIndex = i + 1;
         break;
       }
     }
     
     if (experienceStartIndex > 0) {
-      for (let i = experienceStartIndex; i < Math.min(experienceStartIndex + 20, lines.length); i++) {
+      let currentJob: any = null;
+      
+      for (let i = experienceStartIndex; i < Math.min(experienceStartIndex + 30, lines.length); i++) {
         const line = lines[i];
-        if (line && line.length > 10 && !line.includes('@') && !line.includes('http')) {
-          // Try to parse job title and company
-          const parts = line.split(' at ');
-          if (parts.length === 2) {
-            experience.push({
-              title: parts[0].trim(),
-              company: parts[1].trim(),
-              duration: 'Duration from LinkedIn',
-              description: 'Experience details from LinkedIn profile'
-            });
-          } else if (line.includes('·') || line.includes('|')) {
-            const separator = line.includes('·') ? '·' : '|';
-            const parts = line.split(separator);
-            if (parts.length >= 2) {
-              experience.push({
-                title: parts[0].trim(),
-                company: parts[1].trim(),
-                duration: parts[2] ? parts[2].trim() : 'Duration from LinkedIn',
-                description: 'Experience details from LinkedIn profile'
-              });
-            }
-          }
-        }
         
         // Stop if we hit another section
         if (line.toLowerCase().includes('education') || 
             line.toLowerCase().includes('skills') ||
-            line.toLowerCase().includes('projects')) {
+            line.toLowerCase().includes('projects') ||
+            line.toLowerCase().includes('certifications')) {
           break;
         }
+        
+        // Check if this looks like a job title (not starting with common prefixes)
+        if (line && 
+            line.length > 5 && 
+            line.length < 80 &&
+            !line.startsWith('•') &&
+            !line.startsWith('-') &&
+            !line.toLowerCase().includes('month') &&
+            !line.toLowerCase().includes('year') &&
+            !line.includes('@') &&
+            /^[A-Z]/.test(line)) {
+          
+          // If we have a current job, save it
+          if (currentJob) {
+            experience.push(currentJob);
+          }
+          
+          // Start new job
+          currentJob = {
+            title: line,
+            company: '',
+            duration: '',
+            description: 'Professional experience from LinkedIn profile'
+          };
+          
+          // Look for company and duration in next few lines
+          for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+            const nextLine = lines[j];
+            if (nextLine && nextLine.length > 2 && nextLine.length < 60) {
+              if (!currentJob.company && !nextLine.includes('month') && !nextLine.includes('year')) {
+                currentJob.company = nextLine;
+              } else if (nextLine.includes('month') || nextLine.includes('year') || nextLine.includes('-')) {
+                currentJob.duration = nextLine;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Add the last job if exists
+      if (currentJob) {
+        experience.push(currentJob);
       }
     }
     
-    // Extract education
+    // Extract education - LinkedIn has "Education" section
     const education: Array<{school: string, degree: string, field: string, year: string}> = [];
-    const educationKeywords = ['Education', 'Academic', 'University', 'College', 'School'];
-    let educationStartIndex = -1;
     
+    let educationStartIndex = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (educationKeywords.some(keyword => lines[i].toLowerCase().includes(keyword.toLowerCase()))) {
+      if (lines[i].toLowerCase().includes('education') && lines[i].length < 20) {
         educationStartIndex = i + 1;
         break;
       }
     }
     
     if (educationStartIndex > 0) {
-      for (let i = educationStartIndex; i < Math.min(educationStartIndex + 10, lines.length); i++) {
+      for (let i = educationStartIndex; i < Math.min(educationStartIndex + 15, lines.length); i++) {
         const line = lines[i];
-        if (line && line.length > 5) {
+        
+        // Stop if we hit another section
+        if (line.toLowerCase().includes('skills') ||
+            line.toLowerCase().includes('certifications') ||
+            line.toLowerCase().includes('projects')) {
+          break;
+        }
+        
+        if (line && 
+            line.length > 10 &&
+            (line.includes('University') || 
+             line.includes('College') || 
+             line.includes('Institute') ||
+             line.includes('School') ||
+             line.includes('Bachelor') ||
+             line.includes('Master') ||
+             line.includes('Engineering'))) {
+          
           education.push({
             school: line,
-            degree: 'Degree from LinkedIn',
-            field: 'Field of study',
+            degree: line.includes('Bachelor') ? 'Bachelor\'s Degree' : 
+                   line.includes('Master') ? 'Master\'s Degree' : 'Degree',
+            field: line.includes('Engineering') ? 'Engineering' : 'Field of Study',
             year: 'Year from LinkedIn'
           });
-          break; // Usually just one education entry in LinkedIn PDF
+          break; // Usually just one education entry is most relevant
         }
       }
     }
     
-    // Extract skills - look for technical terms
+    // Extract skills - LinkedIn has skills section or mentions technical skills
     const commonSkills = [
       'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'HTML', 'CSS', 'Git',
       'AWS', 'Docker', 'Kubernetes', 'TypeScript', 'Angular', 'Vue', 'MongoDB', 'PostgreSQL',
       'Express', 'Django', 'Flask', 'Spring', 'Laravel', 'PHP', 'Ruby', 'Go', 'Rust',
-      'Machine Learning', 'Data Science', 'AI', 'DevOps', 'CI/CD', 'Agile', 'Scrum'
+      'Machine Learning', 'Data Science', 'AI', 'DevOps', 'CI/CD', 'Agile', 'Scrum',
+      'Adobe After Effects', 'Adobe Premiere Pro', 'Adobe Photoshop', 'Adobe Illustrator',
+      'Motion Graphics', 'Animation', 'Video Editing', 'Graphic Design', 'UI/UX Design'
     ];
     
     const foundSkills = commonSkills.filter(skill => 
       text.toLowerCase().includes(skill.toLowerCase())
     );
     
-    // If no technical skills found, extract from skills section
-    const skillsSection = text.match(/Skills[\s\S]*?(?=\n[A-Z]|\n\n|$)/i);
-    if (skillsSection && foundSkills.length === 0) {
-      const skillsText = skillsSection[0];
-      const skillLines = skillsText.split('\n').slice(1); // Skip "Skills" header
-      foundSkills.push(...skillLines.filter(line => line.trim().length > 0).slice(0, 10));
+    // Look for skills section specifically
+    let skillsStartIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].toLowerCase().includes('skills') && lines[i].length < 20) {
+        skillsStartIndex = i + 1;
+        break;
+      }
     }
+    
+    if (skillsStartIndex > 0 && foundSkills.length < 5) {
+      for (let i = skillsStartIndex; i < Math.min(skillsStartIndex + 20, lines.length); i++) {
+        const line = lines[i];
+        if (line && line.length > 2 && line.length < 30 && !line.includes('•')) {
+          foundSkills.push(line);
+          if (foundSkills.length >= 10) break;
+        }
+      }
+    }
+    
+    // Create summary based on available information
+    const summary = `${headline}. Professional with experience in ${foundSkills.slice(0, 3).join(', ') || 'various technologies'}. Based in ${location}. ${experience.length > 0 ? `Currently working as ${experience[0].title} at ${experience[0].company}.` : ''} Skilled in multiple technologies and committed to delivering high-quality results.`;
     
     return {
       name,
       headline,
       location,
-      summary: `Professional with experience in ${foundSkills.slice(0, 3).join(', ') || 'various technologies'}. ${text.substring(0, 150)}...`,
+      summary,
       experience: experience.length > 0 ? experience : [{
-        title: 'Position extracted from LinkedIn',
+        title: 'Professional Role',
         company: 'Company from LinkedIn',
         duration: 'Duration from LinkedIn',
-        description: 'Experience details extracted from LinkedIn profile'
+        description: 'Professional experience extracted from LinkedIn profile'
       }],
       education: education.length > 0 ? education : [{
-        school: 'Educational institution from LinkedIn',
+        school: 'Educational Institution',
         degree: 'Degree from LinkedIn',
-        field: 'Field of study',
+        field: 'Field of Study',
         year: 'Year from LinkedIn'
       }],
-      skills: foundSkills.length > 0 ? foundSkills : ['Professional skills from LinkedIn'],
+      skills: foundSkills.length > 0 ? foundSkills.slice(0, 15) : ['Professional Skills'],
       certifications: []
     };
   };
@@ -335,11 +397,6 @@ const Step2LinkedInPDF: React.FC = () => {
                         )}
                       </div>
                     ))}
-                    {analysis.experience.length === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No experience data extracted
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -359,11 +416,6 @@ const Step2LinkedInPDF: React.FC = () => {
                         </p>
                       </div>
                     ))}
-                    {analysis.education.length === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No education data extracted
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -382,22 +434,6 @@ const Step2LinkedInPDF: React.FC = () => {
                       >
                         {skill}
                       </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {analysis.certifications.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                    <Award className="w-5 h-5 mr-2" />
-                    Certifications ({analysis.certifications.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {analysis.certifications.map((cert, index) => (
-                      <div key={index} className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">{cert}</p>
-                      </div>
                     ))}
                   </div>
                 </div>

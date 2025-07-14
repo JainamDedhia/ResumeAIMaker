@@ -124,18 +124,16 @@ ${getTemplateInstructions(resumeData.selectedTemplate?.id || 'professional-class
 Generate a complete, professional resume now:`;
 
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'Resume Generator'
+            'Authorization': `Bearer ${resumeData.groqApiKey}`,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'anthropic/claude-3.5-sonnet',
+            model: 'llama3-70b-8192',
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 1000,
+            max_tokens: 4000,
             temperature: 0.3
           })
         });
@@ -198,8 +196,8 @@ Generate a complete, professional resume now:`;
   const getTemplateInstructions = (templateId: string): string => {
     const instructions = {
       'professional-classic': 'Use clean, traditional formatting with clear section headers. Focus on professional presentation with standard business format.',
-      'tech-modern': 'Use modern formatting with technical focus. Include skills matrix, project highlights, and GitHub integration. Use contemporary design elements.',
-      'creative-portfolio': 'Use creative formatting with visual appeal. Include portfolio sections and creative project highlights. Balance creativity with professionalism.',
+      'modern-tech': 'Use modern formatting with technical focus. Include skills matrix, project highlights, and GitHub integration. Use contemporary design elements.',
+      'creative-design': 'Use creative formatting with visual appeal. Include portfolio sections and creative project highlights. Balance creativity with professionalism.',
       'executive-premium': 'Use sophisticated formatting for leadership roles. Emphasize achievements, leadership experience, and strategic impact. Premium presentation.',
       'academic-research': 'Use academic formatting with research focus. Include publications, research interests, and academic achievements. Detailed academic format.',
       'minimal-clean': 'Use minimalist formatting with focus on content. Clean, simple design without distractions. Emphasis on readability and clarity.'
@@ -210,7 +208,7 @@ Generate a complete, professional resume now:`;
 
   const generateTemplateSpecificFallback = (): string => {
     const name = resumeData.linkedinAnalysis?.name || 'JAINAM DEDHIA';
-    const email = resumeData.linkedinAnalysis?.name ? 'jainamdedhia5@gmail.com' : 'your.email@example.com';
+    const email = 'jainamdedhia5@gmail.com';
     const phone = '+91 7021419016';
     const location = resumeData.linkedinAnalysis?.location || 'Thane, Maharashtra';
     
@@ -293,57 +291,6 @@ CERTIFICATIONS
         message: 'Resume copied to clipboard!'
       });
     }
-  };
-
-  const parseResumeData = (resumeText: string) => {
-    // Parse the resume text to extract structured data for template rendering
-    return {
-      name: resumeData.linkedinAnalysis?.name || 'JAINAM DEDHIA',
-      email: 'jainamdedhia5@gmail.com',
-      phone: '+91 7021419016',
-      location: resumeData.linkedinAnalysis?.location || 'Thane, Maharashtra',
-      linkedin: 'linkedin.com/in/jainam-dedhia',
-      github: 'github.com/jainamdedhia',
-      headline: resumeData.linkedinAnalysis?.headline || 'Software Developer',
-      summary: resumeData.linkedinAnalysis?.summary || 'Experienced software developer with expertise in modern web technologies',
-      skills: resumeData.linkedinAnalysis?.skills || ['JavaScript', 'React', 'Node.js', 'Python', 'Java', 'SQL', 'Git', 'MongoDB'],
-      experience: resumeData.linkedinAnalysis?.experience || [
-        {
-          title: 'Software Developer',
-          company: 'Tech Company',
-          duration: '2022 - Present',
-          description: 'Developed web applications using modern frameworks and technologies'
-        }
-      ],
-      education: resumeData.linkedinAnalysis?.education || [
-        {
-          degree: 'Bachelor of Engineering in Computer Science',
-          school: 'K.J. Somaiya College of Engineering',
-          year: '2024'
-        }
-      ],
-      projects: resumeData.githubProfile?.projects || [
-        {
-          name: 'Advanced To-Do List Android Application',
-          description: 'Mobile application development using Java',
-          language: 'Java',
-          stars: 5
-        },
-        {
-          name: 'Attendance Website',
-          description: 'Web application using PHP and MySQL',
-          language: 'PHP',
-          stars: 3
-        },
-        {
-          name: 'Automated Book Publication Workflow',
-          description: 'Workflow automation using JavaScript',
-          language: 'JavaScript',
-          stars: 8
-        }
-      ],
-      certifications: resumeData.linkedinAnalysis?.certifications || []
-    };
   };
 
   return (

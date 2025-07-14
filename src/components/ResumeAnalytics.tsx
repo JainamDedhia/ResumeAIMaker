@@ -200,16 +200,14 @@ Return ONLY a JSON object:
 
   const callAI = async (prompt: string) => {
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Resume Generator'
+          'Authorization': `Bearer ${resumeData.groqApiKey}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
+          model: 'llama3-70b-8192',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2000,
           temperature: 0.1
