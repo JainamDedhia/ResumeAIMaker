@@ -77,13 +77,25 @@ Return only the JSON object, no other text.`;
 
       if (!response.ok) {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resumeData.groqApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama3-70b-8192',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 2000,
+            temperature: 0.1
+          })
+        });
       }
 
-            'Authorization': `Bearer ${resumeData.groqApiKey}`,
+      const data = await response.json();
       const content = data.choices[0].message.content;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-            model: 'llama3-70b-8192',
+        const analysisResult = JSON.parse(jsonMatch[0]);
         setAnalysis(analysisResult);
         updateResumeData({ 
           jobDescription,
