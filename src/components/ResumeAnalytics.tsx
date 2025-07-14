@@ -64,7 +64,7 @@ const ResumeAnalytics: React.FC<{ resumeContent: string }> = ({ resumeContent })
   }, [resumeContent]);
 
   const analyzeResume = async () => {
-    if (!resumeContent || !resumeData.openrouterApiKey) return;
+    if (!resumeContent || !resumeData.groqApiKey) return;
     
     setIsAnalyzing(true);
     
@@ -200,14 +200,16 @@ Return ONLY a JSON object:
 
   const callAI = async (prompt: string) => {
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resumeData.groqApiKey}`,
+          'Authorization': `Bearer ${resumeData.openrouterApiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Resume Generator'
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2000,
           temperature: 0.1

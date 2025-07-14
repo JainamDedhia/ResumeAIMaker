@@ -417,7 +417,7 @@ Microsoft Azure Fundamentals`}`;
 
             <motion.button
               onClick={generateResume}
-              disabled={!resumeData.jobDescription || !resumeData.openrouterApiKey}
+              disabled={!resumeData.jobDescription || !resumeData.groqApiKey}
               className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 
                        text-white font-medium py-4 px-8 rounded-lg transition-all duration-200 text-lg
                        disabled:opacity-50 disabled:cursor-not-allowed"

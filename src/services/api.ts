@@ -33,7 +33,7 @@ export interface GenerateResumeRequest {
   linkedin_posts?: LinkedInPost[];
   existing_resume?: string;
   job_description: string;
-  openrouter_api_key: string;
+  groq_api_key: string;
 }
 
 export const apiService = {

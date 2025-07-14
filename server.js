@@ -192,28 +192,30 @@ async function extractTextFromDocx(buffer) {
 
 async function generateResumeWithLLM(prompt, apiKey) {
   try {
-    const url = "https://api.groq.com/openai/v1/chat/completions";
+    const url = "https://openrouter.ai/api/v1/chat/completions";
     const headers = {
       "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": "http://localhost:3000",
+      "X-Title": "Resume Generator",
       "Content-Type": "application/json"
     };
     
     const data = {
-      model: "llama3-70b-8192",
+      model: "mistralai/mixtral-8x7b-instruct",
       messages: [
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 4000,
+      max_tokens: 6000,
       temperature: 0.7
     };
     
     const response = await axios.post(url, data, { headers });
     
     if (response.status !== 200) {
-      throw new Error(`Groq API error: ${response.data}`);
+      throw new Error(`OpenRouter API error: ${response.data}`);
     }
     
     return response.data.choices[0].message.content;
@@ -366,11 +368,11 @@ app.post('/generate-resume', async (req, res) => {
       linkedin_posts,
       existing_resume,
       job_description,
-      openrouter_api_key
+      groq_api_key
     } = req.body;
 
-    if (!job_description || !openrouter_api_key) {
-      return res.status(400).json({ detail: "Job description and OpenRouter API key are required" });
+    if (!job_description || !groq_api_key) {
+      return res.status(400).json({ detail: "Job description and Groq API key are required" });
     }
 
     const sections = [];
@@ -439,7 +441,7 @@ Instructions:
     const prompt = sections.join("\n");
 
     // Generate resume using LLM
-    const resumeText = await generateResumeWithLLM(prompt, openrouter_api_key);
+    const resumeText = await generateResumeWithLLM(prompt, groq_api_key);
 
     // Save output
     await fs.ensureDir("output");
