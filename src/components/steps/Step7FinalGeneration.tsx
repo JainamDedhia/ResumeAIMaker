@@ -6,10 +6,11 @@ import { useResume } from '../../contexts/ResumeContext';
 import StepContainer from './StepContainer';
 import GlassCard from '../ui/GlassCard';
 import TypewriterText from '../ui/TypewriterText';
-import ResumeTemplates from '../ResumeTemplates';
+import TemplateRenderer from '../templates/TemplateRenderer';
 import ResumeAnalytics from '../ResumeAnalytics';
 import { apiService } from '../../services/api';
 import Notification from '../ui/Notification';
+import { ResumeParser } from '../../utils/resumeParser';
 
 const Step7FinalGeneration: React.FC = () => {
   const { resumeData, prevStep } = useResume();
@@ -610,10 +611,11 @@ CERTIFICATIONS
                     ) : (
                       <div className="bg-white rounded-lg p-6 max-h-96 overflow-y-auto border">
                         {resumeData.selectedTemplate && (
-                          <ResumeTemplates 
+                          <TemplateRenderer 
                             template={resumeData.selectedTemplate}
-                            data={parseResumeData(generatedResume)}
+                            data={ResumeParser.parseAIGeneratedResume(generatedResume)}
                             className="transform scale-75 origin-top"
+                            scale={0.75}
                           />
                         )}
                       </div>

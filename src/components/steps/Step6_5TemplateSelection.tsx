@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useResume } from '../../contexts/ResumeContext';
 import StepContainer from './StepContainer';
-import TemplateSelector, { ResumeTemplate } from '../TemplateSelector';
+import TemplateSelector, { ResumeTemplate } from '../templates/TemplateSelector';
 
 const Step6_5TemplateSelection: React.FC = () => {
   const { resumeData, updateResumeData, nextStep, prevStep, completeStep } = useResume();

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { ResumeData, Step } from '../types';
-import { ResumeTemplate } from '../components/TemplateSelector';
+import { ResumeTemplate } from '../components/templates/TemplateSelector';
 
 interface ResumeContextType {
   resumeData: ResumeData;
